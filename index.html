@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CNHS SHS Enrollment | Official Portal</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+    /* ================= UPGRADED DESIGN SYSTEM ================= */
+    :root {
+        --primary: #0b5394;
+        --primary-light: #1e73be;
+        --secondary: #c8a11e;
+        --glass-bg: rgba(255, 255, 255, 0.22);
+        --glass-border: rgba(255, 255, 255, 0.35);
+        --text-dark: #0f172a;
+    }
+
+    * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    
+    body { 
+        margin: 0; 
+        min-height: 100vh;
+        color: var(--text-dark);
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        background: 
+            linear-gradient(135deg, rgba(11,83,148,0.92), rgba(30,115,190,0.88)),
+            url("images/background.png") center/cover no-repeat fixed;
+        backdrop-filter: blur(3px);
+    }
+
+    /* Animated University Curves */
+    body::before, body::after {
+        content: "";
+        position: fixed;
+        border-radius: 50%;
+        z-index: -2;
+        filter: blur(60px);
+        animation: curveFloat 20s infinite alternate ease-in-out;
+    }
+    body::before {
+        bottom: -10%; left: -10%; width: 600px; height: 600px;
+        background: radial-gradient(circle, var(--primary), transparent);
+        opacity: 0.6;
+    }
+    body::after {
+        top: -15%; right: -10%; width: 750px; height: 750px;
+        background: radial-gradient(circle, var(--primary-light), transparent);
+        opacity: 0.5;
+        animation-delay: -5s;
+    }
+    @keyframes curveFloat {
+        0% { transform: translate(0, 0) scale(1); }
+        100% { transform: translate(50px, 30px) scale(1.1); }
+    }
+
+    .top-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 45px;
+        margin: 20px auto;
+        width: 92%;
+        max-width: 1200px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border-radius: 24px;
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    }
+    .header-logo { 
+        height: 70px; 
+        background: white; 
+        padding: 6px; 
+        border-radius: 18px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    }
+    .header-logo:hover { transform: translateY(-5px) rotate(8deg) scale(1.1); }
+    .header-title h1 { margin: 0; font-size: 1.4rem; color: #fff; letter-spacing: 1px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+    .header-title p { margin: 0; font-size: 0.9rem; color: #e2e8f0; opacity: 0.9; }
+
+    .progress-container {
+        width: 90%;
+        max-width: 600px;
+        background: rgba(255,255,255,0.2);
+        height: 8px;
+        margin: 10px auto;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    #progressBar {
+        width: 25%;
+        height: 100%;
+        background: var(--secondary);
+        box-shadow: 0 0 15px var(--secondary);
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .container { flex: 1; padding: 20px; }
+    .form-step {
+        display: none;
+        max-width: 750px;
+        margin: 30px auto;
+        background: rgba(255, 255, 255, 0.3);
+        padding: 50px;
+        border-radius: 30px;
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid var(--glass-border);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .form-step::before {
+        content: "";
+        position: absolute;
+        top: 30px; left: 0; width: 6px; height: calc(100% - 60px);
+        background: linear-gradient(180deg, var(--secondary), var(--primary));
+        border-radius: 0 10px 10px 0;
+    }
+
+    .form-step.active {
+        display: block;
+        animation: cardEntrance 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    @keyframes cardEntrance {
+        from { opacity: 0; transform: translateY(30px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    h2 { color: var(--primary); font-weight: 800; margin-bottom: 25px; font-size: 1.8rem; }
+
+    .field-row { margin-bottom: 24px; }
+    label { font-weight: 700; margin-bottom: 8px; color: #1e293b; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; display: block;}
+    input, select, textarea {
+        width: 100%;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        transition: all 0.3s;
+        font-size: 1rem;
+        color: var(--text-dark);
+    }
+    input:focus, select:focus, textarea:focus { 
+        background: #fff;
+        border-color: var(--primary); 
+        outline: none; 
+        box-shadow: 0 10px 25px rgba(11, 83, 148, 0.15);
+        transform: translateY(-2px);
+    }
+
+    button {
+        background: linear-gradient(135deg, var(--primary-light), var(--primary));
+        color: white;
+        border: none;
+        padding: 16px 35px;
+        border-radius: 50px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        box-shadow: 0 10px 25px rgba(11, 83, 148, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    button:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 15px 35px rgba(11, 83, 148, 0.5); }
+    button.secondary { background: rgba(100, 116, 139, 0.2); color: #1e293b; margin-right: 10px; box-shadow: none; }
+
+    .doc-group { overflow: hidden; max-height: 0; opacity: 0; transition: all 0.4s ease-out; }
+    .doc-group.show { max-height: 200px; opacity: 1; margin-bottom: 20px; }
+
+    .site-footer { text-align: center; padding: 40px; font-size: 0.9rem; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+    #qrCode { display:inline-block; padding:15px; background:#fff; border-radius:20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.5s ease; }
+    #qrCode:hover { transform: scale(1.1) rotate(2deg); }
+</style>
+</head>
+
+<body>
+
+<header class="top-header">
+    <img src="images/logo1.png" class="header-logo" alt="Logo">
+    <div class="header-title">
+        <h1>CONCEPCION NATIONAL HIGH SCHOOL</h1>
+        <p>Senior High School Enrollment Portal</p>
+    </div>
+    <img src="images/logo2.png" class="header-logo" alt="Logo">
+</header>
+
+<div class="progress-container">
+    <div id="progressBar"></div>
+</div>
+
+<div class="container">
+    <section class="form-step active" id="step0">
+        <div style="text-align:center;">
+            <h1 style="color:var(--primary); font-size: 2.8rem; font-weight: 800;">Ready to Join Us?</h1>
+            <p style="color:#475569; line-height: 1.8; font-size: 1.1rem; max-width: 500px; margin: 0 auto 30px;">
+                Official Online Registration for Academic Year 2026-2027. 
+                Please ensure you have your digital documents ready.
+            </p>
+            
+            <button onclick="nextStep()">Start Registration</button>
+            
+            <div style="margin-top:50px;">
+                <p style="font-size:11px; font-weight: 700; color:var(--primary); letter-spacing: 2px; margin-bottom: 15px;">SCAN FOR MOBILE ACCESS</p>
+                <div id="qrCode"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="form-step" id="step1">
+        <h2>Student Information</h2>
+        <div class="field-row">
+            <label>Full Name</label>
+            <input id="fullName" placeholder="Last Name, First Name, M.I." required>
+        </div>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <div class="field-row"><label>Age</label><input id="age" type="number" required></div>
+            <div class="field-row"><label>Date of Birth</label><input id="birthday" type="date" required></div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:20px;">
+            <div class="field-row">
+                <label>Learner Reference Number (LRN)</label>
+                <input id="lrn" maxlength="12" placeholder="12-digit LRN" required>
+            </div>
+            <div class="field-row">
+                <label>Gender</label>
+                <select id="gender" required>
+                    <option value="">-- Select --</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="text-align:right; margin-top:30px;">
+            <button class="secondary" onclick="prevStep()">Back</button>
+            <button onclick="nextStep()">Next Step</button>
+        </div>
+    </section>
+
+    <section class="form-step" id="step2">
+        <h2>Academic Details</h2>
+        <div class="field-row">
+            <label>Preferred Strand</label>
+            <select id="strand" required>
+                <option value="">-- Select Strand --</option>
+                <option value="ABM">ABM – Accountancy & Business</option>
+                <option value="HUMSS">HUMSS – Humanities & Social Sciences</option>
+                <option value="ICT">ICT – Tech & Communication</option>
+                <option value="HE">HE – Home Economics</option>
+            </select>
+        </div>
+
+        <div class="field-row">
+            <label>Grade Level</label>
+            <select id="gradeLevel" required>
+                <option value="">-- Select Grade --</option>
+                <option value="Grade 11">Grade 11</option>
+                <option value="Grade 12">Grade 12</option>
+            </select>
+        </div>
+
+        <div class="doc-group" id="grade10Group">
+            <label>Grade 10 Report Card</label>
+            <input type="file" id="reportCard">
+        </div>
+
+        <div class="doc-group" id="form137Group">
+            <label>Form 137 (Permanent Record)</label>
+            <input type="file" id="form137">
+        </div>
+
+        <div class="field-row">
+            <label>Strand Interest Statement</label>
+            <textarea id="interviewReason" rows="3" placeholder="Briefly explain why you chose this strand..."></textarea>
+        </div>
+
+        <div style="text-align:right; margin-top:30px;">
+            <button class="secondary" onclick="prevStep()">Back</button>
+            <button onclick="nextStep()">Review & Submit</button>
+        </div>
+    </section>
+
+    <section class="form-step" id="step3">
+        <h2>Final Confirmation</h2>
+        <p style="color: #475569; margin-bottom: 25px;">Please provide your active Gmail to receive your confirmation stub.</p>
+        <div class="field-row">
+            <label>Gmail Address</label>
+            <input id="studentEmail" type="email" placeholder="student@gmail.com" required>
+        </div>
+        <div style="background: rgba(200, 161, 30, 0.1); padding: 20px; border-radius: 15px; border-left: 5px solid var(--secondary); margin-bottom: 30px;">
+            <small style="color: #856404; font-weight: 600;">By clicking submit, you certify that all information provided is true and correct.</small>
+        </div>
+        <div style="text-align:center;">
+            <button onclick="submitRegistration(event)" id="submitBtn" style="width:100%; padding:20px; background: #27ae60; box-shadow: 0 10px 30px rgba(39, 174, 96, 0.3);">Submit Official Registration</button>
+        </div>
+    </section>
+</div>
+
+<footer class="site-footer">
+    <p>© 2026 Concepcion National High School | Quality Education for All</p>
+</footer>
+
+<div id="debugBox" style="position:fixed; right:18px; bottom:18px; background:rgba(0,0,0,0.7); color:#fff; padding:12px 16px; border-radius:10px; max-width:320px; font-size:13px; display:none; z-index:9999;"></div>
+
+<script>
+    /* ================= FIREBASE CONFIG ================= */
+    const firebaseConfig = {
+        apiKey: "AIzaSyA6VBAW6Pw3DMRbjYSwzPS3IkCDfKSj0MI",
+        authDomain: "cnhs-enrollment-sys.firebaseapp.com",
+        projectId: "cnhs-enrollment-sys",
+        storageBucket: "cnhs-enrollment-sys.appspot.com",
+        messagingSenderId: "822719734909",
+        appId: "1:822719734909:web:efc4b86133dcacdbe2fd14"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    /* ================= QR CODE GENERATION ================= */
+    new QRCode(document.getElementById("qrCode"), {
+        text: window.location.href,
+        width: 130, height: 130,
+        colorDark : "#0b5394",
+        colorLight : "#ffffff"
+    });
+
+    /* ================= STEP NAVIGATION ================= */
+    let currentStep = 0;
+    const steps = document.querySelectorAll(".form-step");
+    const progress = document.getElementById("progressBar");
+
+    function updateUI() {
+        steps.forEach((s, i) => {
+            s.classList.toggle("active", i === currentStep);
+        });
+        const percent = ((currentStep + 1) / steps.length) * 100;
+        progress.style.width = percent + "%";
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    window.nextStep = function() {
+        if (!validateStep(currentStep)) return;
+        if (currentStep < steps.length - 1) {
+            currentStep++;
+            updateUI();
+        }
+    };
+
+    window.prevStep = function() {
+        if (currentStep > 0) {
+            currentStep--;
+            updateUI();
+        }
+    };
+
+    function validateStep(stepIndex) {
+        if (stepIndex === 0) return true; 
+        const inputs = steps[stepIndex].querySelectorAll("input[required], select[required]");
+        let valid = true;
+        for (let input of inputs) {
+            if (!input.value) {
+                input.style.borderColor = "#e74c3c";
+                valid = false;
+            } else {
+                input.style.borderColor = "var(--glass-border)";
+            }
+        }
+        return valid;
+    }
+
+    /* ================= CONDITIONAL FILE FIELDS ================= */
+    document.getElementById("gradeLevel").addEventListener("change", (e) => {
+        const val = e.target.value;
+        const g10 = document.getElementById("grade10Group");
+        const f137 = document.getElementById("form137Group");
+        g10.classList.toggle("show", val === "Grade 11" || val === "Grade 12");
+        f137.classList.toggle("show", val === "Grade 12");
+    });
+
+    /* ================= FORM SUBMISSION ================= */
+    window.submitRegistration = async function(event) {
+        const btn = document.getElementById('submitBtn') || event.target;
+        const originalText = btn && btn.innerText ? btn.innerText : 'Submit';
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        // Basic client-side validation (in case user navigated incorrectly)
+        if (!document.getElementById("fullName").value || !document.getElementById("studentEmail").value) {
+            debug('Validation failed: missing required fields.');
+            alert('Please complete required fields before submitting.');
+            btn.disabled = false;
+            btn.innerText = originalText;
+            return;
+        }
+
+        try {
+            const form137File = document.getElementById("form137").files[0];
+            const grade10File = document.getElementById("reportCard").files[0];
+
+            if (!firebase.storage) {
+                throw new Error('Firebase Storage SDK not available. Check that firebase-storage-compat.js is loaded.');
+            }
+
+            // create document ref first so we can use its id for storage path
+            const docRef = db.collection("registrations").doc();
+            const payload = {
+                fullName: document.getElementById("fullName").value,
+                age: document.getElementById("age").value,
+                birthday: document.getElementById("birthday").value,
+                lrn: document.getElementById("lrn").value,
+                gender: document.getElementById("gender").value,
+                strand: document.getElementById("strand").value,
+                gradeLevel: document.getElementById("gradeLevel").value,
+                email: document.getElementById("studentEmail").value,
+                reason: document.getElementById("interviewReason").value,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            const uploadWithProgress = (file, pathLabel) => {
+                return new Promise((resolve, reject) => {
+                    const storageRef = firebase.storage().ref().child(`registrations/${docRef.id}/${pathLabel}_${Date.now()}_${file.name}`);
+                    const uploadTask = storageRef.put(file);
+                    uploadTask.on('state_changed', snapshot => {
+                        const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                        debug(pathLabel + ' upload: ' + percent + '%');
+                    }, err => {
+                        reject(err);
+                    }, async () => {
+                        try {
+                            const url = await storageRef.getDownloadURL();
+                            resolve(url);
+                        } catch (e) { reject(e); }
+                    });
+                });
+            };
+
+            debug('Starting uploads...');
+
+            if (form137File) {
+                try {
+                    const url = await uploadWithProgress(form137File, 'form137');
+                    payload.form137Url = url;
+                } catch (upErr) {
+                    debug('Form137 upload failed: ' + (upErr && upErr.message ? upErr.message : upErr));
+                    payload.form137Url = null;
+                }
+            }
+            if (grade10File) {
+                try {
+                    const url2 = await uploadWithProgress(grade10File, 'grade10');
+                    payload.grade10Url = url2;
+                } catch (upErr2) {
+                    debug('Grade10 upload failed: ' + (upErr2 && upErr2.message ? upErr2.message : upErr2));
+                    payload.grade10Url = null;
+                }
+            }
+
+            debug('Saving registration record (uploads may have failed) ...');
+            await docRef.set(payload);
+
+            debug('Registration saved (may be missing document URLs).');
+            alert("Success! Your registration has been recorded. Please check your email for the stub.");
+            location.reload();
+        } catch (e) {
+            clearTimeout(recoveryTimer);
+            console.error('Registration submit error:', e);
+            const msg = e && e.message ? e.message : String(e);
+            try { const dbx = document.getElementById('debugBox'); if(dbx){ dbx.style.display='block'; dbx.textContent = 'Error: '+msg; } } catch(e2){}
+            alert('Error submitting: ' + msg + '\n\nOpen browser console for full details.');
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    };
+</script>
+</body>
+</html>
